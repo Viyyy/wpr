@@ -1,0 +1,17 @@
+app: # fastapi配置
+  config: 
+    title: 标题
+    description: 接口文档描述
+    version: 版本号
+  cors: # 跨域配置
+    allow_origins: ['*']
+server: # uvicorn服务器配置
+  host: 0.0.0.0
+  port: 8001
+  reload: true
+api: # 外部接口配置
+  WPR:
+    url: apiurl
+    token:
+      key: token-key
+      value: token-value
