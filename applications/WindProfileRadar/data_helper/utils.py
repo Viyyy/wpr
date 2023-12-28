@@ -74,9 +74,10 @@ def concat_series(series_list:List[pd.Series], index_values, keys)->pd.DataFrame
     返回：
     - 合并后的DataFrame
     '''
-    df:pd.DataFrame = pd.concat(series_list, axis=1, keys=keys,ignore_index=True)
+    df:pd.DataFrame = pd.concat(series_list, axis=1, ignore_index=True)
     df.insert(0, WPR_DataType.HEIGHT.value.col_name, index_values)
     df.set_index(WPR_DataType.HEIGHT.value.col_name, inplace=True)
+    df.columns = keys
     return df
 
 def get_col_index(wpr_data):

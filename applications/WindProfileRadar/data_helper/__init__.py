@@ -7,7 +7,7 @@ import api
 from .utils import get_WPR_data,remove_over_height_data, get_wpr_data_by, WPR_Data_Time_Key, concat_series, remain_spe_row_base
 from .models import HeatMapData, WindFieldData
 from .schemas import WPR_DataType
-from utils.common import get_time_str
+from utils.common import get_time_str,TimeStr
 
 
 def get_wind_field_datas(df:pd.DataFrame, item_time, height_list):
@@ -42,11 +42,6 @@ def get_WPR_data_all(station_code,start_time,end_time,drawSpeLayerArrow:bool=Tru
     HWS = []
     VWS = []
     HWD = []    
-    # for item_time in lst_time:
-    #     df_time = df[df['timePoint']==item_time]
-    #     HWS.append(pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.HWS, by_val=x, by=WPR_DataType.HEIGHT.value.col_name)))
-    #     HWD.append(pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.HWD, by_val=x, by=WPR_DataType.HEIGHT.value.col_name)))
-    #     VWS.append(pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.VWS, by_val=x, by=WPR_DataType.HEIGHT.value.col_name)))
     
     # region 多线程读取数据
     with ProcessPoolExecutor() as pool:
@@ -60,7 +55,7 @@ def get_WPR_data_all(station_code,start_time,end_time,drawSpeLayerArrow:bool=Tru
             VWS.append(vws_)
     # endregion
 
-    time_cols = [get_time_str(pd.to_datetime(item_time),WPR_Data_Time_Key) for item_time in lst_time]
+    time_cols = [get_time_str(pd.to_datetime(item_time),TimeStr.HM) for item_time in lst_time]
     col_index = np.arange(0, len(time_cols))
     HWS = concat_series(HWS, height_list, time_cols)
     VWS = concat_series(VWS, height_list, time_cols)
@@ -73,8 +68,8 @@ def get_WPR_data_all(station_code,start_time,end_time,drawSpeLayerArrow:bool=Tru
     if drawSpeLayerArrow:
         HWS_ = remain_spe_row_base(copy.deepcopy(HWS),height_list)
         HWD_ = remain_spe_row_base(HWD,height_list)
-        VWS_ = remain_spe_row_base(HWD,height_list)
-    VWD_ = VWS_.applymap(lambda x:np.where(x!=0, 180, x))
+        VWS_ = remain_spe_row_base(VWS_,height_list)
+    VWD_ = VWS_.applymap(lambda x: np.where(x != 0, 180, x))
     
     horizontal_wind = WindFieldData(OriginWS=HWS, WS=HWS_, WD=HWD_) # 水平风场数据
     vertical_wind = WindFieldData(OriginWS=VWS, WS=VWS_, WD=VWD_) # 垂直风场数据

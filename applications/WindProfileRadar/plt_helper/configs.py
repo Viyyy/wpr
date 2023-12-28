@@ -45,7 +45,7 @@ class HeatMapConfig(BaseModel):
     - arrowLegendTxtLoc_Y:风场图例箭头到y的距离
     '''
     time_str_type: TimeStr = Field(default=TimeStr.YmdHMS_Na, description='标题上的时间格式')
-    position:List[float] = Field(default=[0.09,0.15,0.81,0.73], description='图片的位置，[x0,y0,width,height]')
+    position:List[float] = Field(default=[0.09,0.15,0.79,0.73], description='图片的位置，[x0,y0,width,height]')
     figsize: tuple = Field(default=(6,2), description='图片大小')
     dpi: int = Field(default=300, description='图片分辨率')
     drawSpeLayerArrow: bool = Field(default=True, description='是否只画指定高度的风场')

@@ -35,10 +35,10 @@ def draw_wind_field_heat_map(savepath,data_type:WindFieldDataType,data:HeatMapDa
         
     match data_type:
         case WindFieldDataType.HWS:
-            wind_data = copy.deepcopy(data.horizontal_wind)
+            wind_data = data.horizontal_wind
             scale_speed = config.arrowLegendWS
         case WindFieldDataType.VWS:
-            wind_data = copy.deepcopy(data.vertical_wind)
+            wind_data = data.vertical_wind
             scale_speed = config.arrowLegendWS/20
             
     wind_data.OriginWS.columns = data.col_index

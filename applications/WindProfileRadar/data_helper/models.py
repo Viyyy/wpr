@@ -14,11 +14,7 @@ class WindFieldData():
         self.OriginWS = OriginWS
         self.WS = WS
         self.WD = WD
-        self.U, self.V = calcUV(self.WS, self.WD,to_nan=True)
-        # self.data_type = data_type
-        
-    # def __repr__(self) -> str:
-    #     return self.data_type.value.name data_type:WindFieldDataType
+        self.U, self.V = calcUV(WS, WD,to_nan=True)
     
     @classmethod
     def create_from_wpr_data(cls, wpr_data, height_list, data_type:WindFieldDataType, drawSpeLayerArrow:bool=True):
@@ -64,7 +60,7 @@ class HeatMapData():
         self.end_time = pd.to_datetime(end_time)
         self.horizontal_wind = horizontal_wind
         self.vertical_wind = vertical_wind
-        self.grid = HeapMapGrid.create_grid(self.horizontal_wind.WS,addition=0.5)
+        self.grid = HeapMapGrid.create_grid(horizontal_wind.WS,addition=0.5)
         self.col_index = col_index
         self.height_list = height_list
      
