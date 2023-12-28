@@ -60,3 +60,33 @@ def round_half_even(value:float, num:int=1)->float:
     """
     return float(Decimal(value).quantize(Decimal(f'{10**(-num)}'), rounding=ROUND_HALF_EVEN))
 
+from PIL import Image
+
+def concatenate_images_vertically(image_paths, output_path):
+    """将多张图片竖向拼接成一张图片
+
+    参数：
+    - image_paths:包含图片路径的列表
+    - output_path:输出图片的路径
+
+    返回：
+    输出图片
+    """
+    # 打开所有图片
+    images = [Image.open(path) for path in image_paths]
+
+    # 获取每张图片的宽度和高度
+    width, height = images[0].size
+
+    # 创建新的图片，高度为所有图片高度之和，宽度为其中一张图片的宽度
+    new_width = width
+    new_height = height * len(images)
+    new_image = Image.new("RGB", (new_width, new_height))
+
+    # 将所有图片依次粘贴到新的图片上
+    for i, image in enumerate(images):
+        new_image.paste(image, (0, height * i))
+
+    # 保存拼接后的图片
+    new_image.save(output_path)
+    return output_path

@@ -6,15 +6,16 @@ import pandas as pd
 from starlette.responses import FileResponse
 from starlette.background import BackgroundTask
 # custom
-from .plt_helper import drawHeatMapMultiVar
-from .data_helper import get_WPR_data
+from .data_helper import get_WPR_data,HeatMapData
+from .plt_helper import Plotter
 import api
-from utils.common import TimeStr, get_time_str, get_random_str
+from utils.common import TimeStr, get_time_str, get_random_str, concatenate_images_vertically
 
 router = APIRouter()
 
 SAVEDIR = 'static/tmp'
 
+from time import time
 @router.get('/Img')
 def get_WPR_img(
     date:datetime.date|None|str=Query(default=None,description='日期'),
@@ -23,6 +24,8 @@ def get_WPR_img(
     station_codes:List[str]=Query(["440600455",'440600405'], description='国控点编号')
 ):
     ''' 获取风廓线雷达图 '''
+    # region 获取数据
+    st = time()
     if date is None:
         date = datetime.date.today()
     date_str = date if isinstance(date, str) else get_time_str(date, TimeStr.Ymd)
@@ -34,9 +37,35 @@ def get_WPR_img(
         end_time_str = get_time_str(now+datetime.timedelta(hours=1), TimeStr.YmdH00)
     wpr_data = get_WPR_data(wpr_code, start_time_str, end_time_str)
     site_datas = [api.get_AQ_data(code,start_time_str, end_time_str) for code in station_codes]
-    drawHeatMapMultiVar(savepath,wpr_data,sitenames,site_datas,start_time_str,end_time_str)
+    et = time()
+    d1 = et-st
+    # endregion
+
+    # region 处理数据
+    st = time()
+    heatmap_data = HeatMapData(
+        station_code=wpr_code, start_time=start_time_str, end_time=end_time_str, 
+        wpr_data=wpr_data, drawSpeLayerArrow=True
+    )
+    et = time()
+    d2 = et-st
+    # endregion
+    
+    # region 绘制图片
+    st = time()
+    plotter = Plotter()
+    results = plotter.draw(heatmap_data=heatmap_data,site_datas=site_datas,sitenames=sitenames,use_en=True)
+    et = time()
+    d3 = et-st
+    # endregion
+
+    # 将这些图片合并为一张图后返回
+    st = time()
+    concatenate_images_vertically(results, savepath)
+    et = time()
+    d4 = et-st
     return FileResponse(
         savepath,
         filename=f'{wpr_code}_{date_str}.png',
-        background=BackgroundTask(lambda:(os.remove(savepath)))
+        # background=BackgroundTask(lambda:(os.remove(savepath)))
     )

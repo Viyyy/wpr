@@ -78,7 +78,6 @@ def get_WPR_data(stationCode,startTime,endTime)-> dict:
     assert isinstance(data, dict)
     
     df = pd.DataFrame(data['data'])
-    df.to_csv(r'static\tmp\wpr_data.csv',encoding='utf-8')
     lst_time = list(df.groupby('timePoint').groups.keys())
     results = {}
 
@@ -97,22 +96,6 @@ def get_WPR_data(stationCode,startTime,endTime)-> dict:
         key = get_time_str(pd.to_datetime(item_time),WPR_Data_Time_Key)
         results[key] = copy.deepcopy(dfSpeTimeData)
         
-    # df.sort_values(by=[WPR_DataType.HEIGHT.value.col_name],inplace=True) 
-    # df = df[df[WPR_DataType.HEIGHT.value.col_name] < MaxHeight]
-    # results1 = {}
-    # for item_time in lst_time:
-    #     dfSpeTimeData = df[df['timePoint']==item_time]
-    #     dfSpeTimeData=dfSpeTimeData.reset_index(drop=True)
-    #     key = get_time_str(pd.to_datetime(item_time),WPR_Data_Time_Key)
-    #     results1[key] = copy.deepcopy(dfSpeTimeData)
-    # from utils.excel_helper import save_dataframes2xlsx
-    # a = {}
-    # i = 1
-    # for k,v in results1.items():
-    #     a[f'sheet{i}'] = v
-    #     i+=1
-    # save_dataframes2xlsx('static/tmp/wpr_data1.xlsx',a)
-
     return results
     
 def get_heap_map_y_ticks(wpr_data:Dict[str,pd.DataFrame],reverse:bool=True)->list:
@@ -123,8 +106,6 @@ def get_heap_map_y_ticks(wpr_data:Dict[str,pd.DataFrame],reverse:bool=True)->lis
     l = list(wpr_data.keys())[0]
     y_ticks = wpr_data[l][WPR_DataType.HEIGHT.value.col_name].values
     
-    # df = pd.concat([v for k,v in wpr_data.items()])
-    # y_ticks = list(df.groupby(WPR_DataType.HEIGHT.value.col_name).groups.keys())
     if reverse:
         y_ticks = y_ticks[::-1]
     return y_ticks
@@ -213,7 +194,6 @@ def calUV(ws, wd, to_nan:bool=True):
         U[U == 0] = np.nan
         V[V == 0] = np.nan
     return U, V
-
 
 class PollutantAnnotation():
     def __init__(self, col_name, unit, unit_cn, label_plt, name_plt, name):

@@ -13,7 +13,7 @@ plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
 plt.rcParams['font.family'] = ['STSong']
 # custom
 from utils.common import TimeStr, get_time_str
-from .data_helper import WPR_DataType,Pollutants,get_heap_map_y_ticks,get_heat_map_data,remain_spe_row,calUV,get_pol_max_min
+from .data_helper1 import WPR_DataType,Pollutants,get_heap_map_y_ticks,get_heat_map_data,remain_spe_row,calUV,get_pol_max_min
 PLOT_TYPES = [WPR_DataType.HWS,WPR_DataType.VWS]
 
 class PolluntantPlot():
@@ -67,173 +67,6 @@ def minus2rep(val ,rep=""):
     finally:
         return result
 
-class HeatMapConfig(BaseModel):
-    figsize: tuple = Field(default=(6,2), description='图片大小')
-    dpi: int = Field(default=300, description='图片分辨率')
-    drawSpeLayerArrow: bool = Field(default=True, description='是否只画指定高度的风场')
-    hw_limit: tuple = Field(default=None, description='水平风场颜色条范围')
-    vw_limit: tuple = Field(default=None, description='垂直风场颜色条范围')
-    cHeadMap: str = Field(default='jet', description='热力图颜色序列')
-    arrowWidth: float = Field(default=0.004, description='折线图中风场箭头的箭杆宽度')
-    arrowHeadWidth: int = Field(default=4, description='折线图中箭头相对于箭杆宽度的倍数')
-    arrowPivot: str = Field(default='mid', description='折线图中风场箭头的枢轴')
-    arrowUnits: str = Field(default='inches', description='折线图中风场箭头尺寸（除长度外）的单位')
-    arrowScale_Units: str = Field(default='inches', description='折线图中风场箭头长度的单位')
-    cFraction: float = Field(default=0.05, description='通过设置该变量调整colorbar的大小')
-    cPad: float = Field(default=0.01, description='colorbar与主图的距离')
-    cbTickSize: int = Field(default=6, description='colorbar数据字体大小')
-    cbTickWid: float = Field(default=0.2, description='colorbar刻度线的宽度')
-    cbTickLen: int = Field(default=1, description='colorbar刻度线的长度')
-    colorbarNticker: int = Field(default=10, description='colorbar刻度个数')
-    picAxisLabelSize: int = Field(default=6, description='坐标轴标题字体大小')
-    picTickSize: int = Field(default=6, description='坐标轴字体大小')
-    rotXticks: int = Field(default=-30, description='横坐标旋转角度')
-    nXticks: int = Field(default=24, description='横坐标刻度的个数')
-    nYticks: int = Field(default=10, description='纵坐标刻度的个数')
-    use_en: bool = Field(default=True, description='图标文本是否使用英文')
-    txtLocX: float = Field(default=0.72, description='标签x轴方向位置')
-    txtLocY: float = Field(default=1.02, description='标签y轴方向位置')
-    txtFontSize: int = Field(default=6, description='标签字体大小')
-    txtFontColor: str = Field(default='k', description='标签字体颜色')
-    cbUnitLocX: float = Field(default=1, description='colorbar单位标签x轴方向位置')
-    cbUnitLocY: float = Field(default=-0.15, description='colorbar单位标签y轴方向位置')
-    picTitleSize: int = Field(default=6, description='图片标题大小')
-    picTitleLoc: str = Field(default='left', description='图片标题位置')
-    arrowLegendWS: int = Field(default=10, description='热力图中风场图例的风速')
-    arrowLegendWD: int = Field(default=270, description='热力图中风场图例的风向')
-    arrowLegendLoc_X: float = Field(default=0.78, description='热力图中风场图例x轴方向位置')
-    arrowLegendLoc_Y: float = Field(default=0.1, description='热力图中风场图例y轴方向位置')
-    arrowLegendColor: str = Field(default='red', description='风场图例颜色')
-    arrowLegendTxtLoc_X: int = Field(default=16, description='风场图例箭头到x的距离')
-    arrowLegendTxtLoc_Y: float = Field(default=0.035, description='风场图例箭头到y的距离')
-    
-
-def drawWind(savepath,
-data_type:WPR_DataType,
-x,y,u,v,y_ticks,dfWS_H,colIndex,data:pd.DataFrame,time_label:str,arrowLocX:float,
-cHeadMap="jet",hw_limit:tuple|None=(0,10),arrowWidth=0.004, arrowHeadWidth=4, arrowPivot='mid', arrowUnits='inches', arrowScale_Units='inches', 
-cFraction=0.05, cPad=0.01, cbTickSize=6, cbTickWid=0.2, cbTickLen=1,colorbarNticker=10,
-picAxisLabelSize=6, picTickSize=6, rotXticks=-30, nXticks=24, nYticks=10, 
-use_en:bool=True, txtLocX=0.72, txtLocY=1.02, txtFontSize=6, txtFontColor="k", 
-cbUnitLocX=1, cbUnitLocY=-0.15, picTitleSize=6, picTitleLoc='left', 
-arrowLegendWS=10, arrowLegendWD=270, arrowLegendLoc_X=0.78, arrowLegendLoc_Y=0.1, arrowLegendColor='red', arrowLegendTxtLoc_X=16, arrowLegendTxtLoc_Y=0.035,
-figsize=FIGSIZE,dpi=DPI):
-    ''' 绘制风场数据
-    :param arrowLocX:箭头图例的位置
-    :param data:风场数据
-    :param time_label:时间标记
-    :param cHeadMap:热力图颜色序列
-    :param hw_limit:水平风场颜色条范围
-    :param arrowWidth:折线图中风场箭头的箭杆宽度
-    :param arrowHeadWidth:折线图中箭头相对于箭杆宽度的倍数
-    :param arrowPivot:折线图中风场箭头的枢轴，即箭头的旋转中心，可选'tail'、'mid'、'middle'、'tip'
-    :param arrowUnits:折线图中风场箭头尺寸（除长度外）以此单位的倍数计算，即选定单位后，箭头尺寸即是此单位的倍数，可选'width'、'height'、'dots'、'inches'、'x'、'y'、'xy'
-    :param arrowScale_Units:折线图中风场箭头长度单位，可选'width'、'height'、'dots'、'inches'、'x'、'y'、'xy'
-    :param cFraction:通过设置该变量调整colorbar的大小
-    :param cPad:colorbar与主图的距离
-    :param cbTickSize:colorbar数据字体大小
-    :param cbTickWid:colorbar刻度线的宽度
-    :param cbTickLen:colorbar刻度线的长度
-    :param colorbarNticker:colorbar刻度个数
-    :param picAxisLabelSize:坐标轴标题字体大小
-    :param picTickSize:坐标轴字体大小
-    :param rotXticks:横坐标旋转角度
-    :param nXticks:横坐标刻度的个数
-    :param nYticks:纵坐标刻度的个数
-    :param use_en:图标文本是否使用英文，否则用中文
-    :param cbUnitLocX:colorbar单位标签x轴方向位置
-    :param cbUnitLocY:colorbar单位标签y轴方向位置
-    :param picTitleSize:图片标题大小
-    :param picTitleLoc:图片标题位置：left、center、right
-    :param arrowLegendWS:热力图中风场图例的风速
-    :param arrowLegendWD:热力图中风场图例的风向
-    :param arrowLegendLoc_X:热力图中风场图例x轴方向位置，值越大距离y轴越远
-    :param arrowLegendLoc_Y:热力图中风场图例y轴方向位置，值越小距离y轴越远
-    :param arrowLegendColor:风场图例颜色
-    :param arrowLegendTxtLoc_X:风场图例箭头到x的距离
-    :param arrowLegendTxtLoc_Y:风场图例箭头到y的距离
-    '''
-    fig,ax = plt.subplots(1,1,figsize=figsize,dpi=dpi)
-    fig.tight_layout()
-    fig.subplots_adjust(left=None, bottom=None, top=None, hspace=None)
-    # region 绘制水平风场
-    # data = get_heat_map_data(wpr_data, wpr_data_type=PLOT_TYPES[0],y_ticks=y_ticks)
-    # colIndex = np.arange(0, len(wpr_data.keys()))
-    # data.columns = colIndex
-    # 0值白化
-    if PLOT_TYPES[0]!=WPR_DataType.VWS:
-        mask = data <= 0
-    # 画热力图
-    tick_locator_H = ticker.MaxNLocator(nbins=colorbarNticker) if isinstance(hw_limit,tuple) else None
-    if hw_limit is None:
-        hw_limit = (None, None)
-    figHeatmap_H = sns.heatmap(
-        data, ax=ax, vmax=hw_limit[1], vmin=hw_limit[0], annot=False, cbar=False, xticklabels=True,
-        yticklabels=True, mask=mask, cmap=cHeadMap)
-
-    # # 画箭头
-    q_H = ax.quiver(x, y, u, v, width=arrowWidth, headwidth=arrowHeadWidth,
-        pivot=arrowPivot, units=arrowUnits, scale_units=arrowScale_Units, scale=100)
-    # 加边框
-    ax = plt.gca()
-    rect = Rectangle((0, 0), ax.dataLim.bounds[2], ax.dataLim.bounds[3], linewidth=2, edgecolor='black', facecolor='none')
-    ax.add_patch(rect)
-    # 添加热力图颜色条
-    cbar_H = figHeatmap_H.figure.colorbar(figHeatmap_H.collections[0], fraction=cFraction, pad=cPad)
-    cbar_H.ax.tick_params(labelsize=cbTickSize)
-    cbar_H.outline.set_visible(False)
-    cbar_H.ax.yaxis.set_tick_params(width=cbTickWid, length=cbTickLen, color='black')
-    # y轴标题字体大小
-    figHeatmap_H.yaxis.label.set_size(picAxisLabelSize)
-    # 热力图坐标轴刻度标签大小设置
-    figHeatmap_H.set_xticklabels(figHeatmap_H.get_xticklabels(), fontsize=picTickSize)
-    figHeatmap_H.set_yticklabels(figHeatmap_H.get_yticklabels(), fontsize=picTickSize)
-    
-    # 将横坐标刻度标签替换为时间
-    ax.set_xticks(colIndex)
-    ax.set_xticklabels(dfWS_H.columns.tolist(), rotation=rotXticks)
-    # 设置坐标轴刻度数量
-    ax.locator_params(axis='x', nbins=nXticks)
-    ax.locator_params(axis='y', nbins=nYticks)
-
-    # 设置纵坐标标题
-    if use_en:
-        figHeatmap_H.set_ylabel(WPR_DataType.HEIGHT.value.label)
-    else:
-        figHeatmap_H.set_ylabel(WPR_DataType.HEIGHT.value.name)
-        
-    #region 向图中添加文本
-    # 时间范围文本
-    ax.text(txtLocX, txtLocY, time_label,
-        fontdict={"size": txtFontSize,"color": txtFontColor}, transform=figHeatmap_H.transAxes)
-    # 颜色条标题文本
-    ax.text(cbUnitLocX, cbUnitLocY, PLOT_TYPES[0].value.label if use_en else PLOT_TYPES[0].value.name,
-        fontdict={"size": txtFontSize,"color": txtFontColor}, transform=ax.transAxes)
-    # 风场类型文本
-    ax.set_title( "WindField_H" if use_en else "水平风场",
-        fontdict={"fontsize": picTitleSize, 'fontweight': 'heavy'},
-        loc=picTitleLoc, pad=txtLocY-1)
-    #endregion
-    
-    #region 风场图例,TODO：图例位置不够自动化
-    uLegend, vLegend = calUV(arrowLegendWS, arrowLegendWD, to_nan=False)
-    # xLegend, yLegend = np.meshgrid(x.shape[1] * arrowLegendLoc_X, y.shape[0] * arrowLegendLoc_Y)
-    q = ax.quiver(50, 150, uLegend, vLegend,
-        color=arrowLegendColor, width=arrowWidth, headwidth=arrowHeadWidth,
-        pivot=arrowPivot, units=arrowUnits, scale_units=arrowScale_Units, scale=100)
-
-    # hour_delta = (end_time-start_time).total_seconds()/3600
-    # add_x = get_add_x(h=hour_delta,c=-0.2)
-    # arrowLocX = (x.shape[1]*arrowLegendLoc_X-arrowLegendTxtLoc_X)/x.shape[1]+add_x
-    ax.quiverkey(q ,0.2+arrowLocX, 1.04,10,' ', labelpos='E') # labelpos 图例标签的位置，可以是'N'（北）、'S'（南）、'E'（东）或'W'（西）。这里的'E'表示图例标签位于箭头的东侧。
-
-    txtTemp = f"Scale: {str(arrowLegendWS)} m/s" if use_en else f"风速：{str(arrowLegendWS)}米/秒"
-    
-    ax.text(arrowLocX, 0.95+arrowLegendLoc_Y-arrowLegendTxtLoc_Y,
-        txtTemp, fontdict={"size": txtFontSize, "color": arrowLegendColor}, transform=figHeatmap_H.transAxes)
-    fig.savefig(savepath,dpi=dpi)
-    # endregion
-    # endregion
 
 def drawHeatMapMultiVar(
     savepath:str,
@@ -297,14 +130,23 @@ def drawHeatMapMultiVar(
     y_ticks = get_heap_map_y_ticks(wpr_data)
 
     # region 风场数据
+    # wind speed
     dfWS_H = get_heat_map_data(wpr_data,WPR_DataType.HWS,y_ticks)
-    dfWD_H = get_heat_map_data(wpr_data,WPR_DataType.HWD,y_ticks)
     dfWS_V = get_heat_map_data(wpr_data,WPR_DataType.VWS,y_ticks) * 20
+    
+    # wind direction
+    dfWD_H = get_heat_map_data(wpr_data,WPR_DataType.HWD,y_ticks)
+    
     if drawSpeLayerArrow:
-        dfWD_H = remain_spe_row(wpr_data, dfWD_H)
+        # wind speed
         dfWS_H = remain_spe_row(wpr_data, dfWS_H)
         dfWS_V = remain_spe_row(wpr_data, dfWS_V)
+        # wind direction
+        dfWD_H = remain_spe_row(wpr_data, dfWD_H)
+        
+    # wind direction 
     dfWD_V = dfWS_V.applymap(lambda x: np.where(x != 0, 180, x))
+    
     u_H, v_H = calUV(dfWS_H, dfWD_H, to_nan=True)
     u_V, v_V = calUV(dfWS_V, dfWD_V, to_nan=True)
     # endregion
@@ -329,6 +171,7 @@ def drawHeatMapMultiVar(
     tick_locator_H = ticker.MaxNLocator(nbins=colorbarNticker) if isinstance(hw_limit,tuple) else None
     if hw_limit is None:
         hw_limit = (None, None)
+    print('old')
     figHeatmap_H = sns.heatmap(
         CurrentDrawVari, ax=ax_H, vmax=hw_limit[1], vmin=hw_limit[0], annot=False, cbar=False, xticklabels=True,
         yticklabels=True, mask=mask, cmap=cHeadMap)
