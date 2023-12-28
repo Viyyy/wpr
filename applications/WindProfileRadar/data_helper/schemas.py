@@ -20,20 +20,20 @@ class WindFieldDataType(Enum):
     
 class WPR_DataType(Enum):
     '''风廓线雷达数据类型'''
-    HWS = WPR_Annotaion('水平风速（米/秒）', 'hws', 'HWS (m/s)',{'cbar_limit':(0,10)})
-    VWS = WPR_Annotaion('垂直风速（米/秒）', 'vws', 'VWS (m/s)',{'cbar_limit':(-1,1)})
     CODE = WPR_Annotaion('站点编号', 'stationCode', '')
     TIMEPOINT = WPR_Annotaion('时间', 'timePoint', '')
     HEIGHT = WPR_Annotaion('高度（米）', 'height', 'Height (m)')
+    HWS = WPR_Annotaion('水平风速（米/秒）', 'hws', 'HWS (m/s)')
     HWD = WPR_Annotaion('水平风向 (度)', 'hwd', 'HWD (°)')
-    H_CRED = WPR_Annotaion('水平方向可信度', 'hCred', 'HCred')
-    V_CRED = WPR_Annotaion('垂直方向可信度', 'vCred', 'VCred')
-    RWS = WPR_Annotaion('径向风速（米/秒）', 'rws', 'RWS (m/s)')
-    TURB = WPR_Annotaion('湍流强度', 'turbIntensity', 'TurbIntensity')
-    SN = WPR_Annotaion('信噪比', 'sn', 'S/N')
-    TEMP = WPR_Annotaion('地面温度（摄氏度）', 'temp', 'Temp (℃)')
-    RH = WPR_Annotaion('相对湿度 （%%）', 'rh', 'RH (%)')
-    H_SHERA = WPR_Annotaion('风切边系数', 'hshear', 'Hshear')
+    VWS = WPR_Annotaion('垂直风速（米/秒）', 'vws', 'VWS (m/s)')
+    # H_CRED = WPR_Annotaion('水平方向可信度', 'hCred', 'HCred')
+    # V_CRED = WPR_Annotaion('垂直方向可信度', 'vCred', 'VCred')
+    # RWS = WPR_Annotaion('径向风速（米/秒）', 'rws', 'RWS (m/s)')
+    # TURB = WPR_Annotaion('湍流强度', 'turbIntensity', 'TurbIntensity')
+    # SN = WPR_Annotaion('信噪比', 'sn', 'S/N')
+    # TEMP = WPR_Annotaion('地面温度（摄氏度）', 'temp', 'Temp (℃)')
+    # RH = WPR_Annotaion('相对湿度 （%%）', 'rh', 'RH (%)')
+    # H_SHERA = WPR_Annotaion('风切边系数', 'hshear', 'Hshear')
     
     @staticmethod
     def get_cols_dict()->dict:

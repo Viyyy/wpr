@@ -27,7 +27,6 @@ class Plotter():
         返回：
         - 图片保存路径列表
         '''
-        plt.cla()
         results = []
         # region init
         time_str = f"{get_time_str(heatmap_data.start_time,TimeStr.YmdHMS_Na)}--{get_time_str(heatmap_data.end_time,TimeStr.YmdHMS_Na)}"

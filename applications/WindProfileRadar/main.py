@@ -25,6 +25,7 @@ def get_WPR_img(
 ):
     ''' 获取风廓线雷达图 '''
     # region 获取数据
+    durations = []
     st = time()
     if date is None:
         date = datetime.date.today()
@@ -38,7 +39,7 @@ def get_WPR_img(
     wpr_data = get_WPR_data(wpr_code, start_time_str, end_time_str)
     site_datas = [api.get_AQ_data(code,start_time_str, end_time_str) for code in station_codes]
     et = time()
-    d1 = et-st
+    durations.append(et-st)
     # endregion
 
     # region 处理数据
@@ -48,7 +49,7 @@ def get_WPR_img(
         wpr_data=wpr_data, drawSpeLayerArrow=True
     )
     et = time()
-    d2 = et-st
+    durations.append(et-st)
     # endregion
     
     # region 绘制图片
@@ -56,14 +57,16 @@ def get_WPR_img(
     plotter = Plotter()
     results = plotter.draw(heatmap_data=heatmap_data,site_datas=site_datas,sitenames=sitenames,use_en=True)
     et = time()
-    d3 = et-st
+    durations.append(et-st)
     # endregion
 
     # 将这些图片合并为一张图后返回
     st = time()
     concatenate_images_vertically(results, savepath)
     et = time()
-    d4 = et-st
+    durations.append(et-st)
+    print(durations)
+    print('总耗时：', sum(durations))
     return FileResponse(
         savepath,
         filename=f'{wpr_code}_{date_str}.png',

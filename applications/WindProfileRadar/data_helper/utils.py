@@ -3,10 +3,10 @@ import pandas as pd
 from typing import Dict,List
 import copy
 import datetime
-from concurrent.futures import ProcessPoolExecutor
 
 import api
 from .schemas import WPR_DataType,WindFieldDataType,Pollutants
+from ..data_helper.models import HeatMapData
 from utils.common import get_time_str, TimeStr
 
 MaxHeight =  3000
@@ -26,8 +26,7 @@ def get_height_list(wpr_data:Dict[str,pd.DataFrame],reverse:bool=True)->list:
 WPR_Data_Time_Key = TimeStr.YmdHMS
 
 def remove_over_height_data(df:pd.DataFrame, item_time):
-    df_time = df[df['timePoint']==item_time]
-    dfSpeTimeData = df_time[WPR_DataType.get_require_cols()]
+    dfSpeTimeData = df[df['timePoint']==item_time]
     dfSpeTimeData.sort_values(by=[WPR_DataType.HEIGHT.value.col_name],inplace=True)
     dfSpeTimeData=dfSpeTimeData.reset_index(drop=True)
     # 找到第一个'高度（米）'大于MaxHeight的index
@@ -51,25 +50,58 @@ def get_WPR_data(stationCode,startTime,endTime)-> dict:
     assert isinstance(data, dict)
     
     df = pd.DataFrame(data['data'])
+    columns = WPR_DataType.get_require_cols()
+    df = df[columns] # 只保留需要的数据
     lst_time = list(df.groupby('timePoint').groups.keys())
+
+    # endregion
     results = {}
     
     for item_time in lst_time:
         k,v = remove_over_height_data(df, item_time)
         results[k] = v
-    # futures = []
-    # with ProcessPoolExecutor(max_workers=4) as pool:
-    #     for item_time in lst_time:
-    #         futures.append(
-    #             pool.submit(
-    #                 remove_over_height_data, #target
-    #                 df, item_time #args
-    #             )
-    #         )
         
-    #     for f in futures:
-    #         k, v = f.result()
-    #         results[k] = v
+    return results
+
+def get_WPR_data_all(stationCode,startTime,endTime)-> HeatMapData:
+    ''' 获取风廓线雷达数据，并提取想要的数据
+    :param stationCode: 站点编码
+    :param startTime:起始时间
+    :param endTime:结束时间
+    :return dict, key:文件名，val:pd.DataFrame
+    '''
+    data = api.get_WPR_data(stationCode,startTime,endTime)
+    assert isinstance(data, dict)
+    
+    df = pd.DataFrame(data['data'])
+    columns = WPR_DataType.get_require_cols()
+    df = df[columns] # 只保留需要的数据
+    lst_time = list(df.groupby('timePoint').groups.keys())
+    
+    # region 尝试直接保留高度列表里的数据
+    time_key,df0 = remove_over_height_data(df, lst_time[0])
+    results[time_key] = df0
+    height_list = df0[WPR_DataType.HEIGHT.value.col_name]
+    height_list = height_list.sort_values(ascending=False) # 倒序
+    for i in range(1, len(lst_time)+1):
+        item_time = lst_time[i]
+        df_time = df[df['timePoint']==item_time]
+        key = get_time_str(pd.to_datetime(item_time),WPR_Data_Time_Key)
+        time_list = pd.Series([key]*len(height_list))
+        hws_data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.HWS, by_val=x, by=WPR_DataType.HEIGHT.value.col_name))
+        hwd_data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.HWD, by_val=x, by=WPR_DataType.HEIGHT.value.col_name))
+        vws_data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.VWS, by_val=x, by=WPR_DataType.HEIGHT.value.col_name))
+        df1 = pd.concat([time_list, height_list, hws_data, hwd_data, vws_data], axis=1, keys=columns)
+        
+    
+    # 剩下的其他时间只保留高度列表里的数据
+    
+    # endregion
+    results = {}
+    
+    for item_time in lst_time:
+        k,v = remove_over_height_data(df, item_time)
+        results[k] = v
         
     return results
   
