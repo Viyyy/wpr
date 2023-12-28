@@ -6,7 +6,6 @@ import datetime
 
 import api
 from .schemas import WPR_DataType,WindFieldDataType,Pollutants
-from ..data_helper.models import HeatMapData
 from utils.common import get_time_str, TimeStr
 
 MaxHeight =  3000
@@ -63,48 +62,22 @@ def get_WPR_data(stationCode,startTime,endTime)-> dict:
         
     return results
 
-def get_WPR_data_all(stationCode,startTime,endTime)-> HeatMapData:
-    ''' 获取风廓线雷达数据，并提取想要的数据
-    :param stationCode: 站点编码
-    :param startTime:起始时间
-    :param endTime:结束时间
-    :return dict, key:文件名，val:pd.DataFrame
+def concat_series(series_list:List[pd.Series], index_values, keys)->pd.DataFrame:
+    ''' 合并Series
+    
+    参数：
+    - series_list:序列列表
+    - index_values:索引值
+    - index_name:索引名称
+    - keys:列名
+    
+    返回：
+    - 合并后的DataFrame
     '''
-    data = api.get_WPR_data(stationCode,startTime,endTime)
-    assert isinstance(data, dict)
-    
-    df = pd.DataFrame(data['data'])
-    columns = WPR_DataType.get_require_cols()
-    df = df[columns] # 只保留需要的数据
-    lst_time = list(df.groupby('timePoint').groups.keys())
-    
-    # region 尝试直接保留高度列表里的数据
-    time_key,df0 = remove_over_height_data(df, lst_time[0])
-    results[time_key] = df0
-    height_list = df0[WPR_DataType.HEIGHT.value.col_name]
-    height_list = height_list.sort_values(ascending=False) # 倒序
-    for i in range(1, len(lst_time)+1):
-        item_time = lst_time[i]
-        df_time = df[df['timePoint']==item_time]
-        key = get_time_str(pd.to_datetime(item_time),WPR_Data_Time_Key)
-        time_list = pd.Series([key]*len(height_list))
-        hws_data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.HWS, by_val=x, by=WPR_DataType.HEIGHT.value.col_name))
-        hwd_data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.HWD, by_val=x, by=WPR_DataType.HEIGHT.value.col_name))
-        vws_data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df_time, WPR_DataType.VWS, by_val=x, by=WPR_DataType.HEIGHT.value.col_name))
-        df1 = pd.concat([time_list, height_list, hws_data, hwd_data, vws_data], axis=1, keys=columns)
-        
-    
-    # 剩下的其他时间只保留高度列表里的数据
-    
-    # endregion
-    results = {}
-    
-    for item_time in lst_time:
-        k,v = remove_over_height_data(df, item_time)
-        results[k] = v
-        
-    return results
-  
+    df:pd.DataFrame = pd.concat(series_list, axis=1, keys=keys,ignore_index=True)
+    df.insert(0, WPR_DataType.HEIGHT.value.col_name, index_values)
+    df.set_index(WPR_DataType.HEIGHT.value.col_name, inplace=True)
+    return df
 
 def get_col_index(wpr_data):
     col_index = np.arange(0, len(wpr_data.keys()))
@@ -125,7 +98,6 @@ def get_wpr_data_by(wpr_data:pd.DataFrame,wpr_data_type:WPR_DataType,by_val,by:s
             result = df1.iloc[0][wpr_data_type.value.col_name]
     finally:
         return result
-
 
 def get_wind_field_data(wpr_data, data_type:WPR_DataType|WindFieldDataType, height_list,index_col:TimeStr=TimeStr.HM)->pd.DataFrame:
     ''' 获取风场数据
@@ -169,6 +141,41 @@ def minus2rep(val ,rep=""):
     finally:
         return result
     
+def remain_spe_row_base(w_data:pd.DataFrame, height_list, upperLayer:int|float=MaxHeight, downLayer:int|float=0, nLayer:int=10):
+    ''' 指定高度的风场
+    :param w_data:风场数据
+    :param upperLayer:顶层高度
+    :param downLayer:顶层高度
+    :param nLayer:风场箭头的层数
+    '''
+    assert downLayer>=0 and upperLayer>downLayer and nLayer>0
+    # w_data = pd.DataFrame(w_data)
+    lstTime = w_data.columns
+    len_wpr_data = len(lstTime)
+
+    # 确定要保留的各层高度
+    yTicks = list(np.arange(downLayer,upperLayer,(upperLayer-downLayer)/nLayer))
+    yTicks.append(upperLayer)
+    # 找出各层高度的行索引
+    heightIndex = []
+    for item in yTicks:
+        if item in height_list:
+            heightIndex.append(height_list.index(item))
+        else:
+            try:
+                yTickTemp = min(i for i in height_list if i > item)
+            except Exception as e:
+                a = 1
+            if height_list.index(yTickTemp)not in heightIndex:
+                heightIndex.append(height_list.index(yTickTemp))
+            else:
+                continue
+
+    for rowIndex in range(0, len(height_list)):
+        if rowIndex not in heightIndex:
+            w_data.iloc[rowIndex] = [None]*len_wpr_data
+    return w_data
+
 def remain_spe_row(wpr_data:Dict[str,pd.DataFrame],w_data:pd.DataFrame, upperLayer:int|float=MaxHeight, downLayer:int|float=0, nLayer:int=10):
     ''' 指定高度的风场
     :param wpr_data:风廓线雷达数据
@@ -177,35 +184,10 @@ def remain_spe_row(wpr_data:Dict[str,pd.DataFrame],w_data:pd.DataFrame, upperLay
     :param downLayer:顶层高度
     :param nLayer:风场箭头的层数
     '''
-    assert downLayer>=0 and upperLayer>downLayer and nLayer>0
-    # w_data = pd.DataFrame(w_data)
     lstTime = list(wpr_data.keys())
-    len_wpr_data = len(lstTime)
     # 获取全部高度
     yTicksAll = list(wpr_data[lstTime[0]][WPR_DataType.HEIGHT.value.col_name])
-
-    # 确定要保留的各层高度
-    yTicks = list(np.arange(downLayer,upperLayer,(upperLayer-downLayer)/nLayer))
-    yTicks.append(upperLayer)
-    # 找出各层高度的行索引
-    heightIndex = []
-    for item in yTicks:
-        if item in yTicksAll:
-            heightIndex.append(yTicksAll.index(item))
-        else:
-            try:
-                yTickTemp = min(i for i in yTicksAll if i > item)
-            except Exception as e:
-                a = 1
-            if yTicksAll.index(yTickTemp)not in heightIndex:
-                heightIndex.append(yTicksAll.index(yTickTemp))
-            else:
-                continue
-
-    for rowIndex in range(0, len(yTicksAll)):
-        if rowIndex not in heightIndex:
-            w_data.iloc[rowIndex] = [None]*len_wpr_data
-    return w_data
+    return remain_spe_row_base(w_data, yTicksAll,upperLayer,downLayer,nLayer)
 
 def get_mask(ws_data):
     '''0值白化

@@ -20,7 +20,7 @@ class WindFieldDataType(Enum):
     
 class WPR_DataType(Enum):
     '''风廓线雷达数据类型'''
-    CODE = WPR_Annotaion('站点编号', 'stationCode', '')
+    # CODE = WPR_Annotaion('站点编号', 'stationCode', '')
     TIMEPOINT = WPR_Annotaion('时间', 'timePoint', '')
     HEIGHT = WPR_Annotaion('高度（米）', 'height', 'Height (m)')
     HWS = WPR_Annotaion('水平风速（米/秒）', 'hws', 'HWS (m/s)')
