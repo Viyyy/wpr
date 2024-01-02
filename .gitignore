@@ -3,5 +3,5 @@ config.yml
 **/tmp
 static/wpr/**
 **/*.png
-*.py
+**.py
 !main.py
