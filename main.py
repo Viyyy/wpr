@@ -34,7 +34,7 @@ app.add_middleware(
 @app.middleware("http")
 async def timing_middleware(request: Request, call_next):
     start_time = time.time()
- 
+  
     response = await call_next(request)
 
     end_time = time.time()
