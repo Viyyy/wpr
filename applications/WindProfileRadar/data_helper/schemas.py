@@ -1,5 +1,5 @@
 from enum import Enum
-
+from utils.common import TimeStr
 class WPR_Annotaion:
     ''' WPR数据注释
     :param name:中文名
@@ -21,7 +21,7 @@ class WindFieldDataType(Enum):
 class WPR_DataType(Enum):
     '''风廓线雷达数据类型'''
     # CODE = WPR_Annotaion('站点编号', 'stationCode', '')
-    TIMEPOINT = WPR_Annotaion('时间', 'timePoint', '')
+    TIMEPOINT = WPR_Annotaion('时间', 'timePoint', '',{'key':TimeStr.YmdHMS})
     HEIGHT = WPR_Annotaion('高度（米）', 'height', 'Height (m)')
     HWS = WPR_Annotaion('水平风速（米/秒）', 'hws', 'HWS (m/s)')
     HWD = WPR_Annotaion('水平风向 (度)', 'hwd', 'HWD (°)')

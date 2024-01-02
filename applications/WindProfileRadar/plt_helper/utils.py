@@ -149,11 +149,10 @@ def draw_pollutant_plot(savepath, sitename, site_data, left_max, right_max, SO2_
     ax3 = ax_AQ.twinx()
     ax3.spines['right'].set_position(('outward', 15))
     
-    data_AQ = site_data
     # 通过接口获取的空气质量数据是按时间倒序排列的，需重新排序
-    data_AQ = data_AQ.sort_values(by=['timePoint'])
+    site_data = site_data.sort_values(by=['timePoint'])
     # 获取时间列表
-    lstTime_AQ = data_AQ['timePoint'].tolist()
+    lstTime_AQ = site_data['timePoint'].tolist()
     # 格式化时间列表
     xtickLabel = []
     for item in lstTime_AQ:
@@ -162,7 +161,7 @@ def draw_pollutant_plot(savepath, sitename, site_data, left_max, right_max, SO2_
     x_plot = np.arange(0, len(xtickLabel))
     for item_pol in TargetPollutants:
         # 获取指定参数
-        data_pol = data_AQ[item_pol.value.annotation.value.col_name].apply(lambda x:minus2rep(x, np.nan))
+        data_pol = site_data[item_pol.value.annotation.value.col_name].apply(lambda x:minus2rep(x, np.nan))
 
         match item_pol:
             case TargetPollutants.PM10 | TargetPollutants.O3:

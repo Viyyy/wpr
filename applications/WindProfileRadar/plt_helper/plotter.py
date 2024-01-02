@@ -9,7 +9,8 @@ from .configs import HeatMapConfig
 from .utils import draw_wind_field_heat_map, draw_pollutant_plot
 from utils.common import get_time_str, TimeStr
 
-BaseDir = 'static/wpr'
+BaseDir = 'static/tmp'
+
 class Plotter():
     def __init__(self, config:HeatMapConfig=HeatMapConfig()):
         self.config = config

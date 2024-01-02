@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 from typing import Dict,List
-import copy
-import datetime
+from .schemas import WPR_DataType,Pollutants
+from utils.common import get_time_str
 
-import api
-from .schemas import WPR_DataType,WindFieldDataType,Pollutants
-from utils.common import get_time_str, TimeStr
-
-MaxHeight =  3000
+MaxHeight =  3000 # 顶层高度
+MinHeight = 0 # 底层高度
+Layers = 10 # 风场箭头的层数
+H = (MaxHeight-MinHeight)/Layers # 单层高度
+Height_List = np.arange(MinHeight, MaxHeight+H, H) # 确定要保留的各层高度
 
 def get_height_list(wpr_data:Dict[str,pd.DataFrame],reverse:bool=True)->list:
     ''' 获取高度列表
@@ -22,9 +22,10 @@ def get_height_list(wpr_data:Dict[str,pd.DataFrame],reverse:bool=True)->list:
         y_ticks = y_ticks[::-1]
     return y_ticks
 
-WPR_Data_Time_Key = TimeStr.YmdHMS
-
 def remove_over_height_data(df:pd.DataFrame, item_time):
+    ''' 移除超出最大高度的数据
+    TODO 优化算法
+    '''
     dfSpeTimeData = df[df['timePoint']==item_time]
     dfSpeTimeData.sort_values(by=[WPR_DataType.HEIGHT.value.col_name],inplace=True)
     dfSpeTimeData=dfSpeTimeData.reset_index(drop=True)
@@ -35,32 +36,8 @@ def remove_over_height_data(df:pd.DataFrame, item_time):
         indexMaxHeight = dfMaxHeight.index[0]
         dfSpeTimeData = dfSpeTimeData.iloc[:indexMaxHeight+1]
 
-    key = get_time_str(pd.to_datetime(item_time),WPR_Data_Time_Key)
+    key = get_time_str(pd.to_datetime(item_time),WPR_DataType.TIMEPOINT.value.key)
     return key, dfSpeTimeData
-    
-def get_WPR_data(stationCode,startTime,endTime)-> dict:
-    ''' 获取风廓线雷达数据，并提取想要的数据
-    :param stationCode: 站点编码
-    :param startTime:起始时间
-    :param endTime:结束时间
-    :return dict, key:文件名，val:pd.DataFrame
-    '''
-    data = api.get_WPR_data(stationCode,startTime,endTime)
-    assert isinstance(data, dict)
-    
-    df = pd.DataFrame(data['data'])
-    columns = WPR_DataType.get_require_cols()
-    df = df[columns] # 只保留需要的数据
-    lst_time = list(df.groupby('timePoint').groups.keys())
-
-    # endregion
-    results = {}
-    
-    for item_time in lst_time:
-        k,v = remove_over_height_data(df, item_time)
-        results[k] = v
-        
-    return results
 
 def concat_series(series_list:List[pd.Series], index_values, keys)->pd.DataFrame:
     ''' 合并Series
@@ -80,10 +57,6 @@ def concat_series(series_list:List[pd.Series], index_values, keys)->pd.DataFrame
     df.columns = keys
     return df
 
-def get_col_index(wpr_data):
-    col_index = np.arange(0, len(wpr_data.keys()))
-    return col_index
-
 def get_wpr_data_by(wpr_data:pd.DataFrame,wpr_data_type:WPR_DataType,by_val,by:str,nan=np.NAN):
     ''' 根据by_val查找wpr的数据
     :param wpr_data:风廓线雷达数据
@@ -99,23 +72,6 @@ def get_wpr_data_by(wpr_data:pd.DataFrame,wpr_data_type:WPR_DataType,by_val,by:s
             result = df1.iloc[0][wpr_data_type.value.col_name]
     finally:
         return result
-
-def get_wind_field_data(wpr_data, data_type:WPR_DataType|WindFieldDataType, height_list,index_col:TimeStr=TimeStr.HM)->pd.DataFrame:
-    ''' 获取风场数据
-    :param wpr_data:风廓线雷达数据
-    :param wpr_data_type:风廓线雷达数据类型
-    :param index_col:索引值的格式
-    :return pd.DataFrame
-    '''
-    result = {}
-    for key,df in wpr_data.items():
-        # 热力图数据
-        data = pd.Series(height_list).apply(lambda x:get_wpr_data_by(df, data_type, by_val=x, by=WPR_DataType.HEIGHT.value.col_name)).values
-        datetime_ = datetime.datetime.strptime(key, WPR_Data_Time_Key.value)
-        result[get_time_str(datetime_, index_col)] = copy.deepcopy(data)
-        
-    result = pd.DataFrame(result, index=height_list)
-    return result
 
 def get_add_x(h,c=0,min=-0.4):
     ''' 计算scale距离
@@ -142,53 +98,23 @@ def minus2rep(val ,rep=""):
     finally:
         return result
     
-def remain_spe_row_base(w_data:pd.DataFrame, height_list, upperLayer:int|float=MaxHeight, downLayer:int|float=0, nLayer:int=10):
+def remain_special_layers(w_data:pd.DataFrame):
     ''' 指定高度的风场
-    :param w_data:风场数据
-    :param upperLayer:顶层高度
-    :param downLayer:顶层高度
-    :param nLayer:风场箭头的层数
+    :param w_data:风场数据，index为height
     '''
-    assert downLayer>=0 and upperLayer>downLayer and nLayer>0
-    # w_data = pd.DataFrame(w_data)
-    lstTime = w_data.columns
-    len_wpr_data = len(lstTime)
-
-    # 确定要保留的各层高度
-    yTicks = list(np.arange(downLayer,upperLayer,(upperLayer-downLayer)/nLayer))
-    yTicks.append(upperLayer)
-    # 找出各层高度的行索引
-    heightIndex = []
-    for item in yTicks:
+    # 找出各层高度
+    targeted_height_list = []
+    height_list = w_data.index.values
+    for item in Height_List:
         if item in height_list:
-            heightIndex.append(height_list.index(item))
+            targeted_height_list.append(item)
         else:
-            try:
-                yTickTemp = min(i for i in height_list if i > item)
-            except Exception as e:
-                a = 1
-            if height_list.index(yTickTemp)not in heightIndex:
-                heightIndex.append(height_list.index(yTickTemp))
-            else:
-                continue
-
-    for rowIndex in range(0, len(height_list)):
-        if rowIndex not in heightIndex:
-            w_data.iloc[rowIndex] = [None]*len_wpr_data
+            targeted_height_list.append(min(i for i in height_list if i > item))
+    targeted_height_list = set(targeted_height_list)
+    for idx, _ in w_data.iterrows():
+        if idx not in targeted_height_list:
+            w_data.loc[idx] = None
     return w_data
-
-def remain_spe_row(wpr_data:Dict[str,pd.DataFrame],w_data:pd.DataFrame, upperLayer:int|float=MaxHeight, downLayer:int|float=0, nLayer:int=10):
-    ''' 指定高度的风场
-    :param wpr_data:风廓线雷达数据
-    :param w_data:风场数据
-    :param upperLayer:顶层高度
-    :param downLayer:顶层高度
-    :param nLayer:风场箭头的层数
-    '''
-    lstTime = list(wpr_data.keys())
-    # 获取全部高度
-    yTicksAll = list(wpr_data[lstTime[0]][WPR_DataType.HEIGHT.value.col_name])
-    return remain_spe_row_base(w_data, yTicksAll,upperLayer,downLayer,nLayer)
 
 def get_mask(ws_data):
     '''0值白化
@@ -236,7 +162,7 @@ def get_pollutant_max(site_datas:List[pd.DataFrame]):
     for p in pollutants:
         concat_df[p.value.col_name] = concat_df[p.value.col_name].astype('float32')
     
-    left_max = max(np.nanmax(concat_df[Pollutants.O3.value.col_name]),np.nanmax(concat_df[Pollutants.PM10.value.col_name]))
+    left_max = max(np.nanmax(concat_df[Pollutants.O3.value.col_name]),np.nanmax(concat_df[Pollutants.PM25.value.col_name]),np.nanmax(concat_df[Pollutants.PM10.value.col_name]))
     right_max = np.nanmax(concat_df[Pollutants.NO2.value.col_name])
     SO2_max = np.nanmax(concat_df[Pollutants.SO2.value.col_name])
     return left_max,right_max,SO2_max

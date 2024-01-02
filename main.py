@@ -1,5 +1,6 @@
 import uvicorn
-from fastapi import FastAPI
+import time
+from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 # custom
@@ -28,6 +29,21 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
+
+# 自定义计时中间件
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    start_time = time.time()
+
+    response = await call_next(request)
+
+    end_time = time.time()
+    duration = end_time - start_time
+
+    # 将处理时间添加到响应头中
+    response.headers["X-Response-Time"] = str(duration)
+
+    return response
 
 #region 动态添加路由
 routers = [
