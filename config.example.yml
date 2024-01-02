@@ -1,6 +1,6 @@
 app: # fastapi配置
   config: 
-    title: 标题
+    title: 风廓线雷达画图接口
     description: 接口文档描述
     version: 版本号
   cors: # 跨域配置
@@ -10,8 +10,12 @@ server: # uvicorn服务器配置
   port: 8001
   reload: true
 api: # 外部接口配置
-  WPR:
-    url: apiurl
+  AQ:
+    url: $url
     token:
-      key: token-key
-      value: token-value
+      access-token: $token
+  WPR:
+    url: $url
+    token:
+      key: $key
+      value: $value

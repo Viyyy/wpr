@@ -5,3 +5,4 @@ static/wpr/**
 **/*.png
 **.py
 !main.py
+**ipynb**
