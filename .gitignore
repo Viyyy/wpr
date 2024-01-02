@@ -1,4 +1,7 @@
 **/__pycache__
 config.yml
 **/tmp
+static/wpr/**
 **/*.png
+*.py
+!main.py
