@@ -1,0 +1,9 @@
+curl_cffi
+pandas
+numpy
+seaborn
+matplotlib
+requests
+fastapi
+uvicorn
+pyyaml
