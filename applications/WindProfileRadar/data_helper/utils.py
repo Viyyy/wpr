@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import pandas as pd
 from typing import Dict,List
 from .schemas import WPR_DataType,Pollutants
@@ -158,11 +159,12 @@ def get_pollutant_max(site_datas:List[pd.DataFrame]):
     '''
     concat_df = pd.concat(site_datas)
     concat_df.replace('—',np.NaN,inplace=True)
-    pollutants = [Pollutants.NO2,Pollutants.O3,Pollutants.PM10,Pollutants.SO2]
-    for p in pollutants:
-        concat_df[p.value.col_name] = concat_df[p.value.col_name].astype('float32')
+    pollutants = [Pollutants.NO2,Pollutants.O3,Pollutants.PM10,Pollutants.SO2,Pollutants.PM25]
+    concat_df = concat_df[[p.value.col_name for p in pollutants]]
+    concat_df = concat_df.astype('float32')
     
-    left_max = max(np.nanmax(concat_df[Pollutants.O3.value.col_name]),np.nanmax(concat_df[Pollutants.PM25.value.col_name]),np.nanmax(concat_df[Pollutants.PM10.value.col_name]))
-    right_max = np.nanmax(concat_df[Pollutants.NO2.value.col_name])
+    left_max = math.ceil(concat_df[[Pollutants.PM10.value.col_name,Pollutants.O3.value.col_name]].max().max())
+    right_max = math.ceil(concat_df[[Pollutants.NO2.value.col_name,Pollutants.PM25.value.col_name]].max().max())
     SO2_max = np.nanmax(concat_df[Pollutants.SO2.value.col_name])
+    
     return left_max,right_max,SO2_max

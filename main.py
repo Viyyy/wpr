@@ -34,14 +34,13 @@ app.add_middleware(
 @app.middleware("http")
 async def timing_middleware(request: Request, call_next):
     start_time = time.time()
-
+ 
     response = await call_next(request)
 
     end_time = time.time()
-    duration = end_time - start_time
 
     # 将处理时间添加到响应头中
-    response.headers["X-Response-Time"] = str(duration)
+    response.headers["X-Response-Time"] = str(end_time - start_time)
 
     return response
 

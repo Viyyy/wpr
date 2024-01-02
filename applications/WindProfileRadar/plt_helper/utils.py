@@ -5,7 +5,6 @@ from matplotlib.patches import Rectangle
 import seaborn as sns
 import pandas as pd
 import numpy as np
-import copy
 
 from utils.common import get_time_str, TimeStr
 from .configs import HeatMapConfig,TargetPollutants

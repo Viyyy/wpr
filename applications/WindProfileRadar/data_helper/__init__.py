@@ -44,15 +44,14 @@ def get_WPR_data_all(station_code,start_time,end_time,drawSpeLayerArrow:bool=Tru
     df = df[columns] # 只保留需要的数据
     lst_time = list(df.groupby(WPR_DataType.TIMEPOINT.value.col_name).groups.keys())
     
-    
-    # region 尝试直接保留高度列表里的数据
+    # region 保留高度列表里的数据
     _, df0 = remove_over_height_data(df, lst_time[0])
     height_list = df0[WPR_DataType.HEIGHT.value.col_name]
     height_list = height_list.sort_values(ascending=False) # 倒序
     
     HWS = []
     VWS = []
-    HWD = []    
+    HWD = []
     df.set_index(WPR_DataType.HEIGHT.value.col_name, inplace=True) # 设置高度为index，后面用高度索引查找数据
     # region 多进程读取数据
     with ProcessPoolExecutor() as pool:
@@ -72,7 +71,6 @@ def get_WPR_data_all(station_code,start_time,end_time,drawSpeLayerArrow:bool=Tru
     VWS = concat_series(VWS, height_list, time_cols)
     HWD = concat_series(HWD, height_list, time_cols)
     
-    # endregion
     HWS_ = HWS * 1
     HWD_ = HWD
     VWS_ = VWS * 20
@@ -82,7 +80,8 @@ def get_WPR_data_all(station_code,start_time,end_time,drawSpeLayerArrow:bool=Tru
         VWS_ = remain_special_layers(VWS_)
         
     VWD_ = VWS_.applymap(lambda x: np.where(x != 0, 180, x))
-    
+    # endregion
+
     horizontal_wind = WindFieldData(OriginWS=HWS, WS=HWS_, WD=HWD_) # 水平风场数据
     vertical_wind = WindFieldData(OriginWS=VWS, WS=VWS_, WD=VWD_) # 垂直风场数据
 
