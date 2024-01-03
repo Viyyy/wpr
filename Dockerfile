@@ -1,6 +1,10 @@
 # 
 FROM python:3.10
 
+# 设置时区
+RUN rm /etc/localtime
+RUN ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
 # 
 WORKDIR /code
 
@@ -15,9 +19,6 @@ RUN apt-get update && apt-get install -y nano
 
 # 复制字体文件到容器中
 COPY static/resources/fonts/STSONG.TTF /usr/local/lib/python3.10/site-packages/matplotlib/mpl-data/fonts/ttf/
-
-# 运行命令
-RUN cd ~/.cache/matplotlib && rm * -r
 
 # 
 CMD ["python","main.py"]
