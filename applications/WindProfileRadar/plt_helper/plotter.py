@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
-from matplotlib import pyplot as plt
+import os
 
 from ..data_helper.utils import get_pollutant_max
 from ..data_helper.models import HeatMapData
@@ -10,7 +10,7 @@ from .utils import draw_wind_field_heat_map, draw_pollutant_plot
 from utils.common import get_time_str, TimeStr
 
 BaseDir = 'static/tmp'
-
+if not os.path.exists(BaseDir):os.makedirs(BaseDir)
 class Plotter():
     def __init__(self, config:HeatMapConfig=HeatMapConfig()):
         self.config = config

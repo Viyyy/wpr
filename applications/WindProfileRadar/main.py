@@ -16,6 +16,7 @@ from utils.common import TimeStr, get_time_str, get_random_str, concatenate_imag
 router = APIRouter()
 
 SAVEDIR = 'static/wpr'
+if not os.path.exists(SAVEDIR):os.makedirs(SAVEDIR)
 
 @router.get('/Img')
 def get_WPR_img(
