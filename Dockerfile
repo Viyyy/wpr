@@ -1,18 +1,18 @@
 # 
 FROM python:3.10
 
+# 
+WORKDIR /code
+
+# 把当前文件夹的所有文件复制到工作文件夹
+COPY . /code/
+
 # 检查文件是否存在并报错
 RUN if [ ! -f "config.yml" ]; then echo "请先按照config.example.yml 创建配置文件： 'config.yml'"; exit 1; fi
 
 # 设置时区
 RUN rm /etc/localtime
 RUN ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-
-# 
-WORKDIR /code
-
-# 把当前文件夹的所有文件复制到工作文件夹
-COPY . /code/
 
 # 
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
