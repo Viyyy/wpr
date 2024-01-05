@@ -21,5 +21,9 @@ class WebConfig():
     def api(self):
         return self.config['api']
     
+    @property
+    def sqlite_db(self):
+        return self.config['database']['sqlite']
+    
     
 webConfig = WebConfig()
