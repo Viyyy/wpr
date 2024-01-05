@@ -5,6 +5,15 @@ import random
 from datetime import date, datetime
 from enum import Enum
 from decimal import Decimal,ROUND_HALF_EVEN# 四舍五入六成双
+import json
+
+def js2str(js:list|dict):
+    rs = json.dumps(js)
+    return rs
+
+def str2js(js_str):
+    rs = json.loads(js_str)
+    return rs
 
 class Dict(dict):
     __setattr__ = dict.__setitem__

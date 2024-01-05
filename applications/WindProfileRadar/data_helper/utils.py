@@ -98,20 +98,26 @@ def minus2rep(val ,rep=""):
             result = val
     finally:
         return result
-    
-def remain_special_layers(w_data:pd.DataFrame):
-    ''' 指定高度的风场
-    :param w_data:风场数据，index为height
-    '''
-    # 找出各层高度
+   
+def get_targeted_height_list(height_list):
     targeted_height_list = []
-    height_list = w_data.index.values
     for item in Height_List:
         if item in height_list:
             targeted_height_list.append(item)
         else:
             targeted_height_list.append(min(i for i in height_list if i > item))
-    targeted_height_list = set(targeted_height_list)
+    targeted_height_list = list(set(targeted_height_list))
+    return targeted_height_list
+    
+def remain_special_layers(w_data:pd.DataFrame,targeted_height_list=None):
+    ''' 指定高度的风场
+    :param w_data:风场数据，index为height
+    '''
+    # 找出各层高度
+    if targeted_height_list is None:
+        height_list = w_data.index.values
+        targeted_height_list = get_targeted_height_list(height_list)
+
     for idx, _ in w_data.iterrows():
         if idx not in targeted_height_list:
             w_data.loc[idx] = None
