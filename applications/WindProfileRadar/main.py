@@ -57,7 +57,7 @@ def get_WPR_img(
     concatenate_images_vertically(results, savepath)
     return FileResponse(
         savepath,
-        filename=f'{wpr_code}_{date_str}_sql.png',
+        filename=f'{wpr_code}_{date_str}.png',
         # background=BackgroundTask(lambda:(os.remove(savepath)))
         background=BackgroundTask(lambda:([os.remove(r) for r in results],gc.collect()))
     )
