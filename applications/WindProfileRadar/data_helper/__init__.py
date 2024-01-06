@@ -8,8 +8,8 @@ from .utils import remove_over_height_data, concat_series, remain_special_layers
 from .models import HeatMapData, WindFieldData
 from .schemas import WPR_DataType
 from utils.common import get_time_str,TimeStr, js2str, str2js
-from ..orm.crud import *
-from ..orm.database import SessionLocal
+from ..database.crud import *
+from ..database.database import SessionLocal
 
 def get_wpr_data_by_height_idx(wpr_data:pd.DataFrame,wpr_data_type:WPR_DataType,idx,nan=np.NAN):
     ''' 根据by_val查找wpr的数据
@@ -115,7 +115,7 @@ def get_heatmap_from_wd(station_code, start_time, end_time,drawSpeLayerArrow:boo
     df = pd.DataFrame(wpr_data['data'])
     columns = WPR_DataType.get_require_cols()
     df = df[columns] # 只保留需要的数据
-    lst_time = list(df.groupby(WPR_DataType.TIMEPOINT.value.col_name).groups.keys())
+    lst_time = list(sorted(df.groupby(WPR_DataType.TIMEPOINT.value.col_name).groups.keys()))
     # endregion
 
     # region 查询高度数据
@@ -257,20 +257,33 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
     '''
     # 数据日期
     date_ = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').date()
-    
+    with SessionLocal() as db:
+        h_data = query_height_data(db, station_code=station_code, date_=date_)
+    if isinstance(h_data, Hdata):
+        if h_data.finish_cached == True:# 已经缓存完成的直接查询热力图结果
+            with SessionLocal() as db:
+                # 查询风场数据
+                wind_data_combined = query_wind_data_combined(db, hid=h_data.id, is_remained=drawSpeLayerArrow)
+            horizontal_wind, vertical_wind = get_hv_wind(wind_data_combined)
+            
+            col_index = np.arange(0, len(wind_data_combined.time_cols))
+            result = HeatMapData(station_code=station_code,
+                start_time=start_time, end_time=end_time,
+                horizontal_wind=horizontal_wind, vertical_wind=vertical_wind,
+                height_list=pd.Series(h_data.height_list), col_index=col_index
+            )
+            return result
+        
     # region 查询WPR数据
     wpr_data = api.get_WPR_data(station_code,start_time,end_time)
     assert isinstance(wpr_data, dict)
     df = pd.DataFrame(wpr_data['data'])
     columns = WPR_DataType.get_require_cols()
     df = df[columns] # 只保留需要的数据
-    lst_time = list(df.groupby(WPR_DataType.TIMEPOINT.value.col_name).groups.keys())
+    lst_time = list(sorted(df.groupby(WPR_DataType.TIMEPOINT.value.col_name).groups.keys()))
     # endregion
 
-    # region 查询高度数据
-    with SessionLocal() as db:
-        h_data = query_height_data(db, station_code=station_code, date_=date_)
-    # 没有时新增
+    # region 高度数据没有时新增
     if h_data is None:
         # 查询高度
         _, df0 = remove_over_height_data(df, lst_time[0])
@@ -287,15 +300,15 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
         with SessionLocal() as db:
             h_data = add_height_data(db, h_data=h_data)
     assert isinstance(h_data, Hdata)
+    
     height_list = pd.Series(h_data.height_list)
     height_num = len(height_list)
     df.set_index(WPR_DataType.HEIGHT.value.col_name, inplace=True) # 设置高度为index，后面用高度索引查找数据
     # endregion 
     
-    # region 查询风场数据
+    # 查询风场数据
     with SessionLocal() as db:
         wind_data_combined = query_wind_data_combined(db, hid=h_data.id, is_remained=drawSpeLayerArrow)
-    # endregion
     
     if wind_data_combined is None:
         # 创建一个新的数据
@@ -352,17 +365,12 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
     # 更新数据库
     with SessionLocal() as db:
         wind_data_combined = update_wind_data_combined(db, wind_data_combined)
-        
-        OriginHWS = pd.DataFrame(wind_data_combined.OriginHWS).set_index(WPR_DataType.HEIGHT.value.col_name)
-        HWS = pd.DataFrame(wind_data_combined.HWS).set_index(WPR_DataType.HEIGHT.value.col_name)
-        HWD = pd.DataFrame(wind_data_combined.HWD).set_index(WPR_DataType.HEIGHT.value.col_name)
-        
-        OriginVWS = pd.DataFrame(wind_data_combined.OriginVWS).set_index(WPR_DataType.HEIGHT.value.col_name)
-        VWS = pd.DataFrame(wind_data_combined.VWS).set_index(WPR_DataType.HEIGHT.value.col_name)
-        VWD = pd.DataFrame(wind_data_combined.VWD).set_index(WPR_DataType.HEIGHT.value.col_name)
-
-        horizontal_wind = WindFieldData(OriginWS=OriginHWS, WS=HWS, WD=HWD) # 水平风场数据
-        vertical_wind = WindFieldData(OriginWS=OriginVWS, WS=VWS, WD=VWD) # 垂直风场数据
+        horizontal_wind, vertical_wind = get_hv_wind(wind_data_combined)
+    if pd.to_datetime(end_time).hour==23:
+        with SessionLocal() as db:
+            h_data.finish_cached = True
+            update_height_data(db, h_data)
+            
 
     col_index = np.arange(0, len(wind_data_combined.time_cols))
     result = HeatMapData(station_code=station_code,
@@ -373,7 +381,19 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
 
     return result
         
-        
+def get_hv_wind(wind_data_combined:WDataCombined):
+    OriginHWS = pd.DataFrame(wind_data_combined.OriginHWS).set_index(WPR_DataType.HEIGHT.value.col_name)
+    HWS = pd.DataFrame(wind_data_combined.HWS).set_index(WPR_DataType.HEIGHT.value.col_name)
+    HWD = pd.DataFrame(wind_data_combined.HWD).set_index(WPR_DataType.HEIGHT.value.col_name)
+    
+    OriginVWS = pd.DataFrame(wind_data_combined.OriginVWS).set_index(WPR_DataType.HEIGHT.value.col_name)
+    VWS = pd.DataFrame(wind_data_combined.VWS).set_index(WPR_DataType.HEIGHT.value.col_name)
+    VWD = pd.DataFrame(wind_data_combined.VWD).set_index(WPR_DataType.HEIGHT.value.col_name)
+
+    horizontal_wind = WindFieldData(OriginWS=OriginHWS, WS=HWS, WD=HWD) # 水平风场数据
+    vertical_wind = WindFieldData(OriginWS=OriginVWS, WS=VWS, WD=VWD) # 垂直风场数据
+
+    return horizontal_wind, vertical_wind
 
 
     
