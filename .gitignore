@@ -3,7 +3,8 @@ config.yml
 static/wpr/**
 static/tmp/**
 **/*.png
-**.py
+*.py
 !main.py
 **ipynb**
 **.sqlite3
+!**/database
