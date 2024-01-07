@@ -13,6 +13,7 @@ from .plt_helper import Plotter
 import api
 from utils.common import TimeStr, get_time_str, get_random_str, concatenate_images_vertically
 
+os.environ["TZ"] = "Asia/Shanghai"
 router = APIRouter()
 
 SAVEDIR = 'static/wpr'
