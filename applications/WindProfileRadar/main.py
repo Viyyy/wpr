@@ -18,6 +18,23 @@ router = APIRouter()
 SAVEDIR = 'static/wpr'
 if not os.path.exists(SAVEDIR):os.makedirs(SAVEDIR)
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
+def job(wpr_code='H0001'):
+    date = datetime.date.today()
+    date_str = get_time_str(date, TimeStr.Ymd)
+    start_time_str = f'{date_str} 0:0:0'
+    end_time_str = get_time_str(datetime.datetime.now()+datetime.timedelta(hours=1), TimeStr.YmdH00)
+    print(f"[{start_time_str}--{end_time_str}] 定时任务启动")
+    heatmap_data = get_heat_map_from_wdc(station_code=wpr_code, start_time=start_time_str, end_time=end_time_str, drawSpeLayerArrow=True)
+    if not (heatmap_data is None):
+        print(f"[{start_time_str}--{end_time_str}] 定时任务完成")
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(job, "cron", hour=6) # 定时启动
+# scheduler.add_job(job, "interval", minutes=1) # 间隔一段时间启动
+scheduler.start()
+
 @router.get('/Img')
 def get_WPR_img(
     date:datetime.date|None|str=Query(default=None,description='日期'),

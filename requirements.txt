@@ -9,3 +9,4 @@ uvicorn
 pyyaml
 sqlacodegen==3.0.0rc3
 sqlalchemy==2.0.20
+apscheduler
