@@ -88,9 +88,11 @@ def update_wind_data_combined(db:Session, w_data_combined:WDataCombined):
         # 更新w_data_combined
         if find_:
             find_.time_cols = w_data_combined.time_cols
+            
             find_.OriginHWS = w_data_combined.OriginHWS
             find_.HWS = w_data_combined.HWS
-            find_.HWD = w_data_combined.HWS
+            find_.HWD = w_data_combined.HWD
+            
             find_.OriginVWS = w_data_combined.OriginVWS
             find_.VWS = w_data_combined.VWS
             find_.VWD = w_data_combined.VWD

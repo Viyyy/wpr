@@ -333,7 +333,7 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
         df_time = df[df[WPR_DataType.TIMEPOINT.value.col_name]==t]
         hws_origin = height_list.apply(lambda x:get_wpr_data_by_height_idx(df_time, WPR_DataType.HWS, x)) # 原始水平风速
         hwd = height_list.apply(lambda x:get_wpr_data_by_height_idx(df_time, WPR_DataType.HWD, x)) # 水平风场
-        hws = hws_origin.tolist() # 水平风速
+        hws = hws_origin * 1 # 水平风速
 
         vws_origin = height_list.apply(lambda x:get_wpr_data_by_height_idx(df_time, WPR_DataType.VWS, x)) # 原始垂直风速
         vws = vws_origin * 20 # 垂直风速
@@ -351,6 +351,7 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
             vws = vws_remained
         else:
             hwd = hwd.tolist()
+            hws = hwd.tolist()
             vws = vws.tolist()
         vwd = pd.Series(vws).apply(lambda x: np.where(x != 0, 180, x)).tolist()
         

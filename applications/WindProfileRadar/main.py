@@ -3,23 +3,23 @@ from typing import List
 import datetime
 import os
 import gc
+import platform
 import pandas as pd
 from starlette.responses import FileResponse
 from starlette.background import BackgroundTask
 from concurrent.futures import ThreadPoolExecutor
 # custom
-from .data_helper import get_heapmap, get_heatmap_from_wd,get_heat_map_from_wdc
+from .data_helper import get_heapmap, get_heat_map_from_wdc
 from .plt_helper import Plotter
 import api
 from utils.common import TimeStr, get_time_str, get_random_str, concatenate_images_vertically
 
-os.environ["TZ"] = "Asia/Shanghai"
+if platform.system()=='Linux':
+    os.environ["TZ"] = "Asia/Shanghai"
 router = APIRouter()
 
 SAVEDIR = 'static/wpr'
 if not os.path.exists(SAVEDIR):os.makedirs(SAVEDIR)
-
-
 
 @router.get('/Img')
 def get_WPR_img(
