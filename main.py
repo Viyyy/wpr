@@ -54,12 +54,6 @@ ROUTER_MANAGER.add_routers_to(app)
 #endregion
 
 if __name__=='__main__':
-    # region 定时任务
-    from utils.schedulers import scheduler_updata_wdc
-    print('*'*10,'scheduler_updata_wdc')
-    scheduler_updata_wdc()
-    # endregion
-    
     uvicorn.run(
         app="main:app",
         use_colors=True,
