@@ -19,6 +19,8 @@ router = APIRouter()
 SAVEDIR = 'static/wpr'
 if not os.path.exists(SAVEDIR):os.makedirs(SAVEDIR)
 
+print(f"{get_time_str(datetime.datetime.now(),TimeStr.YmdHMS)}")
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 def job(wpr_code='H0001'):
