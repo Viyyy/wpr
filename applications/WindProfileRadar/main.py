@@ -32,7 +32,7 @@ def job(wpr_code='H0001'):
         print(f"{get_time_str(datetime.datetime.now(),TimeStr.YmdHMS)} 定时任务完成")
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(job, "cron", hour=7, minute=46) # 定时启动
+scheduler.add_job(job, "cron", hour=9, minute=00) # 定时启动
 # scheduler.add_job(job, "interval", minutes=1) # 间隔一段时间启动
 scheduler.start()
 
