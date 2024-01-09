@@ -62,7 +62,7 @@ def get_WPR_img(
         savepath,
         filename=f'{wpr_code}_{date_str}.png',
         # background=BackgroundTask(lambda:(os.remove(savepath)))
-        background=BackgroundTask(lambda:([os.remove(r) for r in results],gc.collect()))
+        background=BackgroundTask(lambda:([os.remove(r) for r in results],os.remove(savepath),gc.collect()))
     )
     
 @router.get('/Img1',deprecated=True)
