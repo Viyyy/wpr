@@ -1,6 +1,8 @@
 import uvicorn
 import time
 from fastapi import FastAPI,Request
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 # custom
@@ -44,6 +46,14 @@ async def timing_middleware(request: Request, call_next):
 
     return response
 
+# 自定义异常处理中间件
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "status_code": exc.status_code},
+    )
+    
 #region 动态添加路由
 routers = [
     Router('WindProfileRadar',tags='WindProfileRadar',prefix='WPR'),
