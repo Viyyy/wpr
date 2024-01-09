@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor,ThreadPoolExecutor
-from datetime import date, datetime
+from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
+from fastapi import HTTPException
 
 import api
 from .utils import remove_over_height_data, concat_series, remain_special_layers, get_targeted_height_list
 from .models import HeatMapData, WindFieldData
 from .schemas import WPR_DataType
-from utils.common import get_time_str,TimeStr, js2str, str2js
+from utils.common import get_time_str,TimeStr
 from ..database.crud import *
 from ..database.database import SessionLocal
 
@@ -278,6 +279,8 @@ def get_heat_map_from_wdc(station_code, start_time, end_time,drawSpeLayerArrow:b
     wpr_data = api.get_WPR_data(station_code,start_time,end_time)
     assert isinstance(wpr_data, dict)
     df = pd.DataFrame(wpr_data['data'])
+    if len(df) == 0:
+        raise HTTPException(status_code=400, detail=f'【{start_time}--{end_time}】WPR data is Empty')
     columns = WPR_DataType.get_require_cols()
     df = df[columns] # 只保留需要的数据
     lst_time = list(sorted(df.groupby(WPR_DataType.TIMEPOINT.value.col_name).groups.keys()))
