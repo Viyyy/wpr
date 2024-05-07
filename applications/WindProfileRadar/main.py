@@ -8,6 +8,7 @@ import pandas as pd
 from starlette.responses import FileResponse
 from starlette.background import BackgroundTask
 from concurrent.futures import ThreadPoolExecutor
+
 # custom
 from .data_helper import get_heapmap, get_heat_map_from_wdc
 from .plt_helper import Plotter
@@ -21,24 +22,50 @@ router = APIRouter()
 SAVEDIR = 'static/wpr'
 if not os.path.exists(SAVEDIR):os.makedirs(SAVEDIR)
 
+def cache_clear(*file_paths)->None:
+    ''' 清除缓存文件 '''
+    for path in file_paths:
+        if os.path.exists(path):
+            os.remove(path)
+    gc.collect()# 清理内存
+
+def get_wpr_img(
+    date:datetime.date|None|str=None,
+    wpr_code:str='H0001',
+    sitenames:List[str]=[],
+    station_codes:List[str]=[],
+):
+    pass
+
 @router.get('/Img')
-def get_WPR_img(
+def get_WPR_img_interface(
     date:datetime.date|None|str=Query(default=None,description='日期'),
     wpr_code:str=Query('H0001',description='风廓线雷达站点编号'), 
     sitenames:List[str]= Query(['ShiLing','SuGang'], description='与编号对应的国控点名称'), 
     station_codes:List[str]=Query(["440600455",'440600405'], description='国控点编号')
 ):
     ''' 从数据库中获取数据，并绘制风廓线雷达图 '''
+
+    # 用于判断是否执行缓存
+    exec_cache = True
+
     # region 获取数据与处理数据
     if date is None:
         date = datetime.date.today()
-    date_str = date if isinstance(date, str) else get_time_str(date, TimeStr.Ymd)
-    savepath = f'{SAVEDIR}/{wpr_code}_{date_str}_{get_random_str()}.png'
+    date_str = datetime.datetime.strptime(date, TimeStr.Ymd.value).strftime(TimeStr.Ymd.value) if isinstance(date, str) else get_time_str(date, TimeStr.Ymd)
+    
     start_time_str = f'{date_str} 0:0:0'
     end_time_str = f'{date_str} 23:0:0'
     end_time = pd.to_datetime(end_time_str)
-    if end_time > (now:=datetime.datetime.now()):
+    if end_time > (now:=datetime.datetime.now()): # 结束时间大于当前时间，说明当天还没结束，需要重新画一张图
         end_time_str = get_time_str(now+datetime.timedelta(hours=1), TimeStr.YmdH00)
+        savepath = f'{SAVEDIR}/{wpr_code}_{date_str}_{get_random_str()}.png'
+        exec_cache = False
+    else:
+        savepath = f'{SAVEDIR}/{wpr_code}_{date_str}.png'
+        if os.path.exists(savepath):
+            return FileResponse(savepath,filename=f'{wpr_code}_{date_str}.png')
+        
 
     site_datas = []
     with ThreadPoolExecutor() as pool:
@@ -53,16 +80,19 @@ def get_WPR_img(
     
     # region 绘制图片
     plotter = Plotter()
-    results = plotter.draw(heatmap_data=heatmap_data,site_datas=site_datas,sitenames=sitenames,use_en=True)
+    cached_imgs = plotter.draw(heatmap_data=heatmap_data,site_datas=site_datas,sitenames=sitenames,use_en=True)
     # endregion
 
     # 将这些图片合并为一张图后返回
-    concatenate_images_vertically(results, savepath)
+    concatenate_images_vertically(cached_imgs, savepath)
+
+    if not exec_cache:# 如果不缓存，则删除缓存文件
+        cached_imgs.append(savepath)
+
     return FileResponse(
         savepath,
         filename=f'{wpr_code}_{date_str}.png',
-        # background=BackgroundTask(lambda:(os.remove(savepath)))
-        background=BackgroundTask(lambda:([os.remove(r) for r in results],os.remove(savepath),gc.collect()))
+        background=BackgroundTask(lambda:(cache_clear(*cached_imgs)))
     )
     
 @router.get('/Img1',deprecated=True)
