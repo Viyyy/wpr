@@ -1,5 +1,5 @@
-# 
-FROM python:3.10
+# 使用精简版本的python作为基础镜像，bullseye代表debian 11, 适合在生产环境中使用
+FROM python:3.10-slim-bullseye
 
 # 
 WORKDIR /code
