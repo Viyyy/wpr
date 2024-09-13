@@ -42,7 +42,8 @@ def get_WPR_img_interface(
     date:datetime.date|None|str=Query(default=None,description='日期'),
     wpr_code:str=Query('H0001',description='风廓线雷达站点编号'), 
     sitenames:List[str]= Query(['ShiLing','SuGang'], description='与编号对应的国控点名称'), 
-    station_codes:List[str]=Query(["440600455",'440600405'], description='国控点编号')
+    station_codes:List[str]=Query(["440600455",'440600405'], description='国控点编号'),
+    regenerate:bool=Query(default=False,description='是否重新生成图片'),
 ):
     ''' 从数据库中获取数据，并绘制风廓线雷达图 '''
 
@@ -57,15 +58,15 @@ def get_WPR_img_interface(
     start_time_str = f'{date_str} 0:0:0'
     end_time_str = f'{date_str} 23:0:0'
     end_time = pd.to_datetime(end_time_str)
+    
     if end_time > (now:=datetime.datetime.now()): # 结束时间大于当前时间，说明当天还没结束，需要重新画一张图
         end_time_str = get_time_str(now+datetime.timedelta(hours=1), TimeStr.YmdH00)
         savepath = f'{SAVEDIR}/{wpr_code}_{date_str}_{get_random_str()}.png'
         exec_cache = False
     else:
         savepath = f'{SAVEDIR}/{wpr_code}_{date_str}.png'
-        if os.path.exists(savepath):
+        if os.path.exists(savepath) and not regenerate:
             return FileResponse(savepath,filename=f'{wpr_code}_{date_str}.png')
-        
 
     site_datas = []
     with ThreadPoolExecutor() as pool:

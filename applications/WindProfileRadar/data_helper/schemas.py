@@ -16,7 +16,7 @@ class WPR_Annotaion:
      
 class WindFieldDataType(Enum):
     HWS = WPR_Annotaion('水平风速（米/秒）', 'hws', 'HWS (m/s)',{'cbar_limit':(0,10),'cmap':'jet'})
-    VWS = WPR_Annotaion('垂直风速（米/秒）', 'vws', 'VWS (m/s)',{'cbar_limit':(-1,1),'cmap':'seismic'})
+    VWS = WPR_Annotaion('垂直风速（米/秒）', 'vws', 'VWS (m/s)',{'cbar_limit':(None,None),'cmap':'seismic'}) #'cbar_limit':(-1,4),
     
 class WPR_DataType(Enum):
     '''风廓线雷达数据类型'''

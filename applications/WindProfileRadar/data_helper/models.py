@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import math
+
+from utils.common import timestr2timedelta
 from .utils import calcUV, get_grid_coord, get_add_x
 
 class WindFieldData():
@@ -40,6 +43,21 @@ class HeatMapData():
         self.grid = HeapMapGrid.create_grid(horizontal_wind.WS,addition=0.5)
         self.col_index = col_index
         self.height_list = height_list
+
+    def get_last_time(self)->str:
+        '''获取最后的风廓线雷达的时间'''
+        hw_time = list(self.horizontal_wind.OriginWS.columns)
+
+        time_delta = [timestr2timedelta(t, "%H:%M") for t in hw_time]
+        max_time_delta = max(time_delta)
+        last_time = hw_time[time_delta.index(max_time_delta)]
+        return last_time
+    
+    def get_last_hour(self)->int:
+        '''获取最后的风廓线雷达的小时-整点'''
+        max_time_delta = timestr2timedelta(self.get_last_time(), "%H:%M")
+        last_hour = math.floor(max_time_delta.total_seconds() / 3600)
+        return last_hour
      
     @property
     def add_x(self):
